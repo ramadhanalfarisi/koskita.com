@@ -33,16 +33,100 @@ class UserController extends Controller
         return view('register');
     }
 
-    // it's function that make RestFul API
-    // public function getapi()
-    // {
-    //     $getapi = Kost::all();
-    //     $data = [
-    //         "message" => "Berhasil Get Data",
-    //         "values" => $getapi
-    //     ];
-    //     return response()->json($data);
-    // }
+    // it's function that make RestFul API #Read
+    public function getapi()
+    {
+        $getapi = Kost::all();
+        if(count($getapi) > 0){
+            $data = [
+                "message" => "Berhasil Get Data",
+                "values" => $getapi,
+                "code" => 200
+            ];
+            return response()->json($data);
+        }else{
+            $data = [
+                "message" => "Berhasil Get Data",
+                "values" => "Not Found",
+                "code" => 404
+            ];
+            return response()->json($data);
+        }
+        
+    }
+
+    // it's function that make RestFul API #Insert
+    public function insertapi(Request $request)
+    {
+        $insert = $request->input('nama_fasilitas');
+        $insertapi = Kost::create($insert);
+        if(count($insertapi) > 0){
+            $data = [
+                "message" => "Berhasil Get Data",
+                "values" => "Success",
+                "code" => 200
+            ];
+            return response()->json($data);
+        }else{
+            $data = [
+                "message" => "Berhasil Get Data",
+                "values" => "Error",
+                "code" => 404
+            ];
+            return response()->json($data);
+        }
+        
+        return response()->json($data);
+    }
+
+    // it's function that make RestFul API #Update
+    public function updateapi(Request $request)
+    {
+        $update = $request->input('nama_fasilitas');
+        $id = $request->input('id');
+        $updateapi = Kost::where('id',$id)->update($update);
+        if(count($updateapi) > 0){
+            $data = [
+                "message" => "Berhasil Get Data",
+                "values" => "Success",
+                "code" => 200
+            ];
+            return response()->json($data);
+        }else{
+            $data = [
+                "message" => "Berhasil Get Data",
+                "values" => "Error",
+                "code" => 404
+            ];
+            return response()->json($data);
+        }
+        
+        return response()->json($data);
+    }
+
+     // it's function that make RestFul API #Delete
+     public function deleteapi(Request $request)
+     {
+         $id = $request->input('id');
+         $deleteapi = Kost::where('id',$id)->delete();
+         if(count($deleteapi) > 0){
+             $data = [
+                 "message" => "Berhasil Get Data",
+                 "values" => "Success",
+                 "code" => 200
+             ];
+             return response()->json($data);
+         }else{
+             $data = [
+                 "message" => "Berhasil Get Data",
+                 "values" => "Error",
+                 "code" => 404
+             ];
+             return response()->json($data);
+         }
+         
+         return response()->json($data);
+     }
 
     public function create(Request $request)
     {
@@ -130,8 +214,10 @@ class UserController extends Controller
     {
         if (Session::get('login') == true) {
             $get_where = Kost::where('id', $id)->get();
+            $fasilitas_kost = Fasilitas::all();
+            $get_wheref = DB::table('fasilitas_kost')->where('kost_id',$id)->get();
             if ($get_where->count() > 0) {
-                return view('editkost', compact('get_where'));
+                return view('editkost', compact('get_where','fasilitas_kost','get_wheref'));
             }
         } else {
             return redirect('login')->with('error', 'Harus Login Dulu');
@@ -144,19 +230,31 @@ class UserController extends Controller
                 'nama_kost' => 'required',
                 'alamat_kost' => 'required',
                 'harga' => 'required',
-                'file' => 'required|file|image|mimes:jpeg,png,jpg|max:2048'
             ]);
             $id = $request->input('id');
             $nama_kost = $request->input('nama_kost');
             $alamat = $request->input('alamat_kost');
             $harga = $request->input('harga');
+            $foto = $request->input('file');
+            $file_lama = $request->input('file_lama');
             $fasilitas = $request->input('fasilitas');
-            $data = [
-                "id" => $id,
-                "nama_kost" => $nama_kost,
-                "alamat" => $alamat,
-                "harga" => $harga
-            ];
+            if($foto == ""){
+                $data = [
+                    "id" => $id,
+                    "nama_kost" => $nama_kost,
+                    "alamat" => $alamat,
+                    "harga" => $harga,
+                    "file" => $file_lama
+                ];
+            }else {
+                $data = [
+                    "id" => $id,
+                    "nama_kost" => $nama_kost,
+                    "alamat" => $alamat,
+                    "harga" => $harga,
+                    "file" => $foto
+                ];
+            }
             $edit = Kost::where('id', $id)->update($data);
             if (count($edit) > 0) {
                 DB::table('fasilitas_kost')->where('kost_id',$id)->delete();
@@ -166,8 +264,8 @@ class UserController extends Controller
                         "fasilitas_id" => $fas
                     ];
                     DB::table('fasilitas_kost')->insert($datafasilitas);
-                    return redirect('read')->with('success', 'Berhasil Edit Data');
                 }
+                return redirect('read')->with('success', 'Berhasil Edit Data');
             } else {
                 return redirect('read')->with('error', 'Gagal Edit Data');
             }
@@ -253,6 +351,7 @@ class UserController extends Controller
             $force = Kost::onlyTrashed()->where('id', $id)->forceDelete();
             if (count($gambar) > 0) {
                 if (count($force) > 0) {
+                    DB::table('fasilitas_kost')->where('kost_id',$id)->delete();
                     return redirect('trash')->with('success', 'Berhasil Delete Data');
                 } else {
                     return redirect('trash')->with('error', 'Gagal Delete Data');
